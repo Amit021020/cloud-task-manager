@@ -25,3 +25,12 @@ A cloud-native task management API built to demonstrate DevOps practices.
 - Cloud deployment
 - Kubernetes orchestration
 - Monitoring
+
+## CI/CD Pipeline
+
+Implemented GitHub Actions workflow that:
+
+- Automatically triggers on code push
+- Installs dependencies
+- Builds Docker image
+- Validates application packaging
