@@ -1,10 +1,10 @@
-# Cloud Task Manager - DevOps Deployment Project
+# Cloud Task Manager – DevOps Deployment Project
 
 Overview
 
-Cloud Task Manager is a sample Flask application created to demonstrate a complete DevOps workflow. The primary focus of this project is not the application itself, but the infrastructure, automation, containerization, orchestration, and monitoring built around it.
+Cloud Task Manager is a sample Flask application designed to demonstrate an end-to-end DevOps workflow. The application itself is intentionally simple; the primary focus is on the surrounding infrastructure, automation, containerization, orchestration, and observability.
 
-The project showcases how an application can be containerized using Docker, deployed on Kubernetes, automated using GitHub Actions, and monitored with Prometheus and Grafana.
+This project demonstrates how a Flask application can be containerized with Docker, deployed to Kubernetes, automated via GitHub Actions, and monitored using Prometheus and Grafana.
 
 ⸻
 
@@ -39,39 +39,39 @@ Developer
 GitHub Repository
     │
     ▼
-GitHub Actions
+GitHub Actions (CI Pipeline)
     │
     ▼
-Docker Image
+Docker Image Build
     │
     ▼
-Docker Hub
+Docker Hub Registry
     │
     ▼
-Kubernetes (Kind)
+Kubernetes Cluster (Kind)
     │
     ▼
-Flask Application
+Flask Application Pods
     │
     ▼
-Prometheus
+Prometheus (Metrics Collection)
     │
     ▼
-Grafana
+Grafana (Visualization)
 
 ⸻
 
 Features
 
-* Containerized Flask application using Docker
-* Automated CI pipeline with GitHub Actions
-* Docker image build and push to Docker Hub
-* Kubernetes Deployment and Service
-* Multiple application replicas
+* Dockerized Flask application
+* CI pipeline using GitHub Actions
+* Automated Docker image build and push to Docker Hub
+* Kubernetes Deployment and Service configuration
+* Scalable deployment with multiple replicas
 * Resource requests and limits for containers
 * Monitoring with Prometheus
-* Visualization using Grafana
-* Local Kubernetes cluster using Kind
+* Dashboards with Grafana
+* Local Kubernetes environment using Kind
 
 ⸻
 
@@ -118,7 +118,7 @@ Deploy the application
 
 kubectl apply -f kubernetes/
 
-Verify the deployment
+Verify deployment
 
 kubectl get pods
 kubectl get services
@@ -127,7 +127,7 @@ kubectl get services
 
 Monitoring
 
-The project includes a monitoring stack deployed using Helm.
+The monitoring stack is deployed using Helm.
 
 Components
 
@@ -136,51 +136,49 @@ Components
 * kube-state-metrics
 * Node Exporter
 
-These components provide visibility into:
+Observability Coverage
 
 * Kubernetes cluster health
-* Pod status
-* CPU usage
+* Pod status and lifecycle
+* CPU utilization
 * Memory usage
-* Application metrics
+* Application-level metrics
 
 ⸻
 
 CI Pipeline
 
-The GitHub Actions workflow automatically:
+The GitHub Actions workflow automates the following steps:
 
-* Checks out the source code
-* Installs project dependencies
-* Builds the Docker image
-* Pushes the image to Docker Hub
+* Source code checkout
+* Dependency installation
+* Docker image build
+* Docker image push to Docker Hub
 
 ⸻
 
 Skills Demonstrated
 
-* Docker Containerization
-* Kubernetes Deployments
-* Kubernetes Services
-* Helm
-* GitHub Actions
-* CI/CD
-* Docker Hub
-* Prometheus Monitoring
-* Grafana Dashboards
-* Linux
-* Git & GitHub
-* Troubleshooting Kubernetes deployments
+* Docker containerization
+* Kubernetes deployments and services
+* Helm package management
+* CI/CD with GitHub Actions
+* Docker Hub image registry
+* Prometheus monitoring
+* Grafana dashboards
+* Linux environment usage
+* Git and GitHub workflows
+* Kubernetes troubleshooting
 
 ⸻
 
 Future Improvements
 
-* Automatic Kubernetes deployment after CI
-* Application testing in the CI pipeline
-* Image versioning strategy
-* Production-ready Kubernetes manifests
-* Cloud deployment on AWS, Azure, or Google Cloud
+* Automated deployment to Kubernetes from CI pipeline
+* Integration of automated testing in CI
+* Docker image versioning strategy
+* Production-grade Kubernetes manifests
+* Cloud deployment (AWS, Azure, or GCP)
 
 ⸻
 
@@ -188,4 +186,4 @@ Author
 
 Amit Suyal
 
-If you found this project helpful, feel free to star the repository.
+If you found this project useful, feel free to star the repository.
