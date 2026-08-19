@@ -172,13 +172,7 @@ Skills Demonstrated
 
 ⸻
 
-Future Improvements
 
-* Automated deployment to Kubernetes from CI pipeline
-* Integration of automated testing in CI
-* Docker image versioning strategy
-* Production-grade Kubernetes manifests
-* Cloud deployment (AWS, Azure, or GCP)
 
 ⸻
 
