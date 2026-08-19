@@ -3,6 +3,7 @@ kind: Deployment
 
 metadata:
   name: task-manager
+  namespace: cloud-task-manager
 
 spec:
   replicas: 2
@@ -12,30 +13,42 @@ spec:
       app: task-manager
 
   template:
-
     metadata:
       labels:
         app: task-manager
 
     spec:
-
       containers:
+        - name: task-manager
 
-      - name: task-manager
+          image: amitsuyal/cloud-task-manager:latest
 
-        image: cloud-task-manager
-        imagePullPolicy: Never
+          imagePullPolicy: Always
 
-        ports:
+          ports:
+            - containerPort: 5000
 
-        - containerPort: 5000
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
 
-        resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
 
-          requests:
-            memory: "128Mi"
-            cpu: "100m"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5000
 
-          limits:
-            memory: "256Mi"
-            cpu: "500m"
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5000
+
+            initialDelaySeconds: 15
+            periodSeconds: 20

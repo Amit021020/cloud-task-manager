@@ -1,50 +1,216 @@
-name: CI Pipeline
+name: Cloud Task Manager CI/CD
 
 on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
 
+
 jobs:
+
+  # ============================================================
+  # CI - Build and Push Docker Image
+  # ============================================================
+
   build-and-push:
-    runs-on: ubuntu-latest
+
+    name: Build and Push Docker Image
+
+    runs-on: self-hosted
 
     permissions:
       contents: read
 
     steps:
+
+      # --------------------------------------------------------
+      # Checkout repository
+      # --------------------------------------------------------
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+
+      # --------------------------------------------------------
+      # Setup Python
+      # --------------------------------------------------------
+
       - name: Set up Python
         uses: actions/setup-python@v5
+
         with:
           python-version: "3.12"
+
+
+      # --------------------------------------------------------
+      # Install Python dependencies
+      # --------------------------------------------------------
 
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+
+      # --------------------------------------------------------
+      # Setup Docker Buildx
+      # --------------------------------------------------------
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+
+      # --------------------------------------------------------
+      # Login to Docker Hub
+      # --------------------------------------------------------
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
+
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+
+      # --------------------------------------------------------
+      # Build and Push Docker Image
+      # --------------------------------------------------------
+
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v6
+
         with:
           context: .
+          file: ./Dockerfile
+
           push: true
+
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/cloud-task-manager:latest
             ${{ secrets.DOCKER_USERNAME }}/cloud-task-manager:${{ github.sha }}
+
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+
+  # ============================================================
+  # CD - Deploy to Kubernetes
+  # ============================================================
+
+  deploy:
+
+    name: Deploy to Kubernetes
+
+    needs: build-and-push
+
+    runs-on: self-hosted
+
+    steps:
+
+      # --------------------------------------------------------
+      # Checkout repository
+      # --------------------------------------------------------
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+
+      # --------------------------------------------------------
+      # Verify Docker
+      # --------------------------------------------------------
+
+      - name: Check Docker
+        run: |
+          docker --version
+
+
+      # --------------------------------------------------------
+      # Verify kubectl
+      # --------------------------------------------------------
+
+      - name: Check kubectl
+        run: |
+          kubectl version --client
+
+
+      # --------------------------------------------------------
+      # Verify Kind cluster
+      # --------------------------------------------------------
+
+      - name: Check Kind
+        run: |
+          kind version
+          kind get clusters
+
+
+      # --------------------------------------------------------
+      # Check Kubernetes cluster
+      # --------------------------------------------------------
+
+      - name: Check Kubernetes
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+
+      # --------------------------------------------------------
+      # Create namespace
+      # --------------------------------------------------------
+
+      - name: Apply Namespace
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+
+
+      # --------------------------------------------------------
+      # Update Docker image in Deployment
+      # --------------------------------------------------------
+
+      - name: Update Kubernetes Image
+        run: |
+          kubectl set image deployment/task-manager \
+            task-manager=${{ secrets.DOCKER_USERNAME }}/cloud-task-manager:${{ github.sha }} \
+            -n cloud-task-manager
+
+
+      # --------------------------------------------------------
+      # Apply Kubernetes manifests
+      # --------------------------------------------------------
+
+      - name: Apply Kubernetes Deployment
+        run: |
+          kubectl apply -f k8s/deployment.yaml
+
+
+      # --------------------------------------------------------
+      # Apply Kubernetes Service
+      # --------------------------------------------------------
+
+      - name: Apply Kubernetes Service
+        run: |
+          kubectl apply -f k8s/service.yaml
+
+
+      # --------------------------------------------------------
+      # Wait for deployment
+      # --------------------------------------------------------
+
+      - name: Wait for Deployment
+        run: |
+          kubectl rollout status deployment/task-manager \
+            -n cloud-task-manager \
+            --timeout=120s
+
+
+      # --------------------------------------------------------
+      # Show Kubernetes resources
+      # --------------------------------------------------------
+
+      - name: Kubernetes Status
+        run: |
+          kubectl get pods -n cloud-task-manager
+          kubectl get services -n cloud-task-manager
