@@ -190,4 +190,5 @@ jobs:
 
       - name: Port Forwading
         run:
-          kubectl port-forward service/task-manager 5000:5000 -n cloud-task-manager
+          kubectl port-forward service/task-manager 5000:5000 -n cloud-task-manager &
+          sleep 5
