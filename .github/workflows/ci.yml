@@ -187,3 +187,7 @@ jobs:
         run: |
           kubectl get pods -n cloud-task-manager
           kubectl get services -n cloud-task-manager
+
+      - name: Port Forwading
+        run:
+          kubectl port-forward service/task-manager 5000:5000
