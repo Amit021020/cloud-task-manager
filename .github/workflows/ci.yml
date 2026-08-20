@@ -236,7 +236,7 @@ jobs:
       - name: Deploy Prometheus Configuration
         run: |
           kubectl apply \
-            -f k8s/prometheus/ \
+            -f k8s/prometheus.yml \
             -n cloud-task-manager
 
 
