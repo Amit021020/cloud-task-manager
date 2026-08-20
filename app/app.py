@@ -68,7 +68,22 @@ def login_page():
         return redirect(url_for("dashboard"))
 
     return render_template("login.html")
+@app.route("/login", methods=["POST"])
+def login():
 
+    username = request.form.get("username")
+    password = request.form.get("password")
+
+    # Your authentication logic here
+
+    if username == "your_username" and password == "your_password":
+        session["username"] = username
+        return redirect(url_for("dashboard"))
+
+    return render_template(
+        "login.html",
+        error="Invalid username or password"
+    ), 401
 
 # -------------------------------------------------------------------
 # Register page
