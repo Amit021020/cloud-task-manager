@@ -158,7 +158,12 @@ jobs:
             -n cloud-task-manager
 
 
-      
+      - name: Kubernetes Create Secret
+        run: |
+          kubectl create secret generic task-manager-secret \
+            --from-literal=SECRET_KEY=${{ secrets.SECRET_KEY }} \
+            -n cloud-task-manager \
+            --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Apply Kubernetes Deployment
         run: |

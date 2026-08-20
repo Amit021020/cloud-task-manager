@@ -1,13 +1,14 @@
+import os
 from flask import Flask, jsonify, request, render_template, redirect, url_for, session
 from prometheus_flask_exporter import PrometheusMetrics
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 import threading
-
+from dotenv import load_dotenv
 app = Flask(__name__)
 
 # Secret key for Flask sessions
-app.secret_key = "change-this-secret-key"
+app.config["SECRET_KEY"]= os.environ["SECRET_KEY"]
 
 # Prometheus metrics
 metrics = PrometheusMetrics(app)

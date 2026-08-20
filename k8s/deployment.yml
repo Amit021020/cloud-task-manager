@@ -27,7 +27,12 @@ spec:
 
           ports:
             - containerPort: 5000
-
+          env:
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: task-manager-secret
+                  key: SECRET_KEY
           resources:
             requests:
               cpu: "100m"

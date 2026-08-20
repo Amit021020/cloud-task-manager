@@ -1,3 +1,4 @@
 Flask
 prometheus-flask-exporter
 Werkzeug
+python-dotenv
