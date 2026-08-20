@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 import threading
 from dotenv import load_dotenv
+load_dotenv()
 app = Flask(__name__)
 
 # Secret key for Flask sessions
