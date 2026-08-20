@@ -1,5 +1,6 @@
 import os
-from flask import Flask, jsonify, request, render_template, redirect, url_for, session
+from flask import Flask, jsonify, request, render_template, redirect, url_for, session , Response
+from prometheus_client import generate_latest , CONTENT_TYPE_LATEST
 from prometheus_flask_exporter import PrometheusMetrics
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
@@ -400,6 +401,13 @@ def health():
     return jsonify({
         "status": "healthy"
     }), 200
+
+@app.route("/metrics")
+def metrics():
+    return Response(
+        generate_latest(),
+        mimetype=CONTENT_TYPE_LATEST
+    )
 
 
 # -------------------------------------------------------------------

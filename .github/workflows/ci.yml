@@ -9,7 +9,12 @@ on:
     branches:
       - main
 
+
 jobs:
+
+  # ============================================================
+  # CI - Build and Push Docker Image
+  # ============================================================
 
   build-and-push:
 
@@ -22,39 +27,76 @@ jobs:
 
     steps:
 
+      # --------------------------------------------------------
+      # Checkout repository
+      # --------------------------------------------------------
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+
+      # --------------------------------------------------------
+      # Setup Python
+      # --------------------------------------------------------
+
       - name: Set up Python
         uses: actions/setup-python@v5
+
         with:
           python-version: "3.12"
+
+
+      # --------------------------------------------------------
+      # Install Python dependencies
+      # --------------------------------------------------------
 
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+
+      # --------------------------------------------------------
+      # Setup Docker Buildx
+      # --------------------------------------------------------
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+
+      # --------------------------------------------------------
+      # Login to Docker Hub
+      # --------------------------------------------------------
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
+
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+
+      # --------------------------------------------------------
+      # Build and Push Docker Image
+      # --------------------------------------------------------
+
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v6
+
         with:
           context: .
           file: ./Dockerfile
+
           push: true
+
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/cloud-task-manager:latest
             ${{ secrets.DOCKER_USERNAME }}/cloud-task-manager:${{ github.sha }}
+
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+
 
 
   deploy:
@@ -67,50 +109,47 @@ jobs:
 
     steps:
 
+
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+
 
       - name: Check Docker
         run: |
           docker --version
 
+
+      
+
       - name: Check kubectl
         run: |
           kubectl version --client
+
+
+      
 
       - name: Check Kind
         run: |
           kind version
           kind get clusters
 
+
+      
+
       - name: Check Kubernetes
         run: |
           kubectl cluster-info
           kubectl get nodes
 
+
+      
+
       - name: Apply Namespace
         run: |
           kubectl apply -f k8s/namespace.yml
 
-      - name: Create Kubernetes Secret
-        run: |
-          kubectl create secret generic task-manager-secret \
-            --from-literal=SECRET_KEY=${{ secrets.SECRET_KEY }} \
-            -n cloud-task-manager \
-            --dry-run=client \
-            -o yaml | kubectl apply -f -
 
-      - name: Apply Kubernetes Deployment
-        run: |
-          kubectl apply \
-            -f k8s/deployment.yml \
-            -n cloud-task-manager
-
-      - name: Apply Kubernetes Service
-        run: |
-          kubectl apply \
-            -f k8s/service.yml \
-            -n cloud-task-manager
 
       - name: Update Kubernetes Image
         run: |
@@ -118,21 +157,52 @@ jobs:
             task-manager=${{ secrets.DOCKER_USERNAME }}/cloud-task-manager:${{ github.sha }} \
             -n cloud-task-manager
 
-      - name: Wait for Application
+
+      - name: Kubernetes Create Secret
+        run: |
+          kubectl create secret generic task-manager-secret \
+            --from-literal=SECRET_KEY=${{ secrets.SECRET_KEY }} \
+            -n cloud-task-manager \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Apply Kubernetes Deployment
+        run: |
+          kubectl apply -f k8s/deployment.yml
+
+
+      
+
+      - name: Apply Kubernetes Service
+        run: |
+          kubectl apply -f k8s/service.yml
+
+
+      
+
+      - name: Wait for Deployment
         run: |
           kubectl rollout status deployment/task-manager \
             -n cloud-task-manager \
-            --timeout=180s
+            --timeout=120s
 
-      - name: Check Application
+
+      
+
+      - name: Kubernetes Status
         run: |
           kubectl get pods -n cloud-task-manager
           kubectl get services -n cloud-task-manager
 
-      - name: Stop Existing Application Port Forward
+      
+      # --------------------------------------------------
+      # 13. Stop previous port-forward
+      # --------------------------------------------------
+      - name: Stop Existing Port Forward
         run: |
-          pkill -f "kubectl port-forward.*service/task-manager.*5000:5000" || true
-
+          pkill -f "kubectl port-forward.*5000:5000" || true
+      # --------------------------------------------------
+      # 14. Port forward Kubernetes Service to localhost
+      # --------------------------------------------------
       - name: Port Forward Application
         run: |
           nohup kubectl port-forward \
@@ -141,41 +211,82 @@ jobs:
             -n cloud-task-manager \
             --address=0.0.0.0 \
             > /tmp/task-manager-port-forward.log 2>&1 &
-
-          sleep 5
-
+            sleep 5
       - name: Verify Application
         run: |
-          cat /tmp/task-manager-port-forward.log
-          curl -f http://localhost:5000
+          echo "===== PORT FORWARD LOG ====="
+          cat /tmp/task-manager-port-forward.log || true
 
-      - name: Verify Metrics
+          echo "===== TESTING APPLICATION ====="
+          curl -I http://localhost:5000 || \
+          curl http://localhost:5000
+
+
+     
+      - name: Application URL
         run: |
-          curl -f http://localhost:5000/metrics
+          echo "======================================"
+          echo "Application deployed successfully!"
+          echo "Open: http://localhost:5000"
+          echo "======================================"
 
-      - name: Deploy Prometheus
+            # --------------------------------------------------
+      # 17. Apply Prometheus configuration
+      # --------------------------------------------------
+      - name: Deploy Prometheus Configuration
         run: |
           kubectl apply \
             -f k8s/prometheus.yml \
             -n cloud-task-manager
 
-      - name: Wait for Prometheus
+
+      # --------------------------------------------------
+      # 18. Add Prometheus annotations to application
+      # --------------------------------------------------
+      - name: Configure Prometheus Scraping
         run: |
-          kubectl rollout status deployment/prometheus \
+          kubectl annotate service task-manager \
+            prometheus.io/scrape="true" \
+            prometheus.io/path="/metrics" \
+            prometheus.io/port="5000" \
+            -n cloud-task-manager \
+            --overwrite
+
+
+      # --------------------------------------------------
+      # 19. Restart application to pick up configuration
+      # --------------------------------------------------
+      - name: Restart Application
+        run: |
+          kubectl rollout restart \
+            deployment/task-manager \
+            -n cloud-task-manager
+
+          kubectl rollout status \
+            deployment/task-manager \
             -n cloud-task-manager \
             --timeout=180s
 
+
+      # --------------------------------------------------
+      # 20. Check Prometheus
+      # --------------------------------------------------
       - name: Check Prometheus
         run: |
-          kubectl get pods -n cloud-task-manager
-          kubectl get services -n cloud-task-manager
+          kubectl get pods \
+            -n cloud-task-manager
 
-      - name: Stop Existing Prometheus Port Forward
-        run: |
-          pkill -f "kubectl port-forward.*service/prometheus.*9090:9090" || true
+          kubectl get services \
+            -n cloud-task-manager
 
+
+      # --------------------------------------------------
+      # 21. Port Forward Prometheus
+      # --------------------------------------------------
       - name: Port Forward Prometheus
         run: |
+          pkill -f "kubectl port-forward.*9090:9090" || true
+
           nohup kubectl port-forward \
             service/prometheus \
             9090:9090 \
@@ -185,11 +296,16 @@ jobs:
 
           sleep 5
 
+
+      # --------------------------------------------------
+      # 22. Verify Prometheus
+      # --------------------------------------------------
       - name: Verify Prometheus
         run: |
-          cat /tmp/prometheus.log
           curl -f http://localhost:9090/-/ready
 
-      - name: Verify Prometheus Target
-        run: |
-          curl -s http://localhost:9090/api/v1/targets
+          echo ""
+          echo "======================================"
+          echo "Prometheus is available at:"
+          echo "http://localhost:9090"
+          echo "======================================"
