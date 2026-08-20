@@ -193,7 +193,38 @@ jobs:
           kubectl get pods -n cloud-task-manager
           kubectl get services -n cloud-task-manager
 
-      - name: Port Forwading
-        run:
-          kubectl port-forward service/task-manager 5000:5000 -n cloud-task-manager &
-          sleep 5
+      
+      # --------------------------------------------------
+      # 13. Stop previous port-forward
+      # --------------------------------------------------
+      - name: Stop Existing Port Forward
+        run: |
+          pkill -f "kubectl port-forward.*5000:5000" || true
+      # --------------------------------------------------
+      # 14. Port forward Kubernetes Service to localhost
+      # --------------------------------------------------
+      - name: Port Forward Application
+        run: |
+          nohup kubectl port-forward \
+            service/task-manager \
+            5000:5000 \
+            -n cloud-task-manager \
+            --address=0.0.0.0 \
+            > /tmp/task-manager-port-forward.log 2>&1 &
+      - name: Verify Application
+        run: |
+          echo "===== PORT FORWARD LOG ====="
+          cat /tmp/task-manager-port-forward.log || true
+
+          echo "===== TESTING APPLICATION ====="
+          curl -I http://localhost:5000 || \
+          curl http://localhost:5000
+
+
+     
+      - name: Application URL
+        run: |
+          echo "======================================"
+          echo "Application deployed successfully!"
+          echo "Open: http://localhost:5000"
+          echo "======================================"
