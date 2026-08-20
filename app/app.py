@@ -76,7 +76,7 @@ def login():
 
     # Your authentication logic here
 
-    if username == "your_username" and password == "your_password":
+    if username in users and check_password_hash(users[username]["password"], password):
         session["username"] = username
         return redirect(url_for("dashboard"))
 
