@@ -97,9 +97,7 @@ jobs:
           cache-to: type=gha,mode=max
 
 
-  # ============================================================
-  # CD - Deploy to Kubernetes
-  # ============================================================
+
 
   deploy:
 
@@ -107,39 +105,29 @@ jobs:
 
     needs: build-and-push
 
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
 
-      # --------------------------------------------------------
-      # Checkout repository
-      # --------------------------------------------------------
 
       - name: Checkout Repository
         uses: actions/checkout@v4
 
 
-      # --------------------------------------------------------
-      # Verify Docker
-      # --------------------------------------------------------
 
       - name: Check Docker
         run: |
           docker --version
 
 
-      # --------------------------------------------------------
-      # Verify kubectl
-      # --------------------------------------------------------
+      
 
       - name: Check kubectl
         run: |
           kubectl version --client
 
 
-      # --------------------------------------------------------
-      # Verify Kind cluster
-      # --------------------------------------------------------
+      
 
       - name: Check Kind
         run: |
@@ -147,9 +135,7 @@ jobs:
           kind get clusters
 
 
-      # --------------------------------------------------------
-      # Check Kubernetes cluster
-      # --------------------------------------------------------
+      
 
       - name: Check Kubernetes
         run: |
@@ -157,18 +143,13 @@ jobs:
           kubectl get nodes
 
 
-      # --------------------------------------------------------
-      # Create namespace
-      # --------------------------------------------------------
+      
 
       - name: Apply Namespace
         run: |
-          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/namespace.yml
 
 
-      # --------------------------------------------------------
-      # Update Docker image in Deployment
-      # --------------------------------------------------------
 
       - name: Update Kubernetes Image
         run: |
@@ -177,27 +158,21 @@ jobs:
             -n cloud-task-manager
 
 
-      # --------------------------------------------------------
-      # Apply Kubernetes manifests
-      # --------------------------------------------------------
+      
 
       - name: Apply Kubernetes Deployment
         run: |
-          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/deployment.yml
 
 
-      # --------------------------------------------------------
-      # Apply Kubernetes Service
-      # --------------------------------------------------------
+      
 
       - name: Apply Kubernetes Service
         run: |
-          kubectl apply -f k8s/service.yaml
+          kubectl apply -f k8s/service.yml
 
 
-      # --------------------------------------------------------
-      # Wait for deployment
-      # --------------------------------------------------------
+      
 
       - name: Wait for Deployment
         run: |
@@ -206,9 +181,7 @@ jobs:
             --timeout=120s
 
 
-      # --------------------------------------------------------
-      # Show Kubernetes resources
-      # --------------------------------------------------------
+      
 
       - name: Kubernetes Status
         run: |
