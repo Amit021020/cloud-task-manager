@@ -45,6 +45,12 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+  deploy-to-ec2:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
       - name: Deploy to EC2 using SSM
         run: |
           COMMAND_ID=$(aws ssm send-command \
