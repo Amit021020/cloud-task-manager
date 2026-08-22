@@ -5,197 +5,43 @@ on:
     branches:
       - main
 
-  pull_request:
-    branches:
-      - main
-
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
 
-  # ============================================================
-  # CI - Build and Push Docker Image
-  # ============================================================
-
   build-and-push:
 
-    name: Build and Push Docker Image
-
-    runs-on: self-hosted
-
-    permissions:
-      contents: read
+    runs-on: ubuntu-latest
 
     steps:
 
-      # --------------------------------------------------------
-      # Checkout repository
-      # --------------------------------------------------------
-
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-
-      # --------------------------------------------------------
-      # Setup Python
-      # --------------------------------------------------------
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          python-version: "3.12"
+          role-to-assume: arn:aws:iam::536300833114:role/cloud-task-manager-github-actions
+          aws-region: ap-south-1
 
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-      # --------------------------------------------------------
-      # Install Python dependencies
-      # --------------------------------------------------------
-
-      - name: Install Dependencies
+      - name: Build Docker image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: cloud-task-manager
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
 
-
-      # --------------------------------------------------------
-      # Setup Docker Buildx
-      # --------------------------------------------------------
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-
-      # --------------------------------------------------------
-      # Login to Docker Hub
-      # --------------------------------------------------------
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-
-      # --------------------------------------------------------
-      # Build and Push Docker Image
-      # --------------------------------------------------------
-
-      - name: Build and Push Docker Image
-        uses: docker/build-push-action@v6
-
-        with:
-          context: .
-          file: ./Dockerfile
-
-          push: true
-
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/cloud-task-manager:latest
-            ${{ secrets.DOCKER_USERNAME }}/cloud-task-manager:${{ github.sha }}
-
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-
-
-
-  deploy:
-
-    name: Deploy to Kubernetes
-
-    needs: build-and-push
-
-    runs-on: self-hosted
-
-    steps:
-
-
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-
-
-      - name: Check Docker
+      - name: Push Docker image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: cloud-task-manager
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker --version
-
-
-      
-
-      - name: Check kubectl
-        run: |
-          kubectl version --client
-
-
-      
-
-      - name: Check Kind
-        run: |
-          kind version
-          kind get clusters
-
-
-      
-
-      - name: Check Kubernetes
-        run: |
-          kubectl cluster-info
-          kubectl get nodes
-
-
-      
-
-      - name: Apply Namespace
-        run: |
-          kubectl apply -f k8s/namespace.yml
-
-
-
-      - name: Update Kubernetes Image
-        run: |
-          kubectl set image deployment/task-manager \
-            task-manager=${{ secrets.DOCKER_USERNAME }}/cloud-task-manager:${{ github.sha }} \
-            -n cloud-task-manager
-
-
-      - name: Create Kubernetes Secret
-        run: |
-          kubectl create secret generic task-manager-secret \
-            --from-literal=SECRET_KEY="${{ secrets.SECRET_KEY }}" \
-            -n cloud-task-manager \
-            --dry-run=client \
-            -o yaml | kubectl apply -f -
-
-      - name: Apply Kubernetes Deployment
-        run: |
-          kubectl apply -f k8s/deployment.yml
-
-
-      
-
-      - name: Apply Kubernetes Service
-        run: |
-          kubectl apply -f k8s/service.yml
-
-
-      
-
-      - name: Wait for Deployment
-        run: |
-          kubectl rollout status deployment/task-manager \
-            -n cloud-task-manager \
-            --timeout=120s
-
-
-      
-
-      - name: Kubernetes Status
-        run: |
-          kubectl get pods -n cloud-task-manager
-          kubectl get services -n cloud-task-manager
-
-      
-      
-
-
-     
+          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG

@@ -1,4 +1,6 @@
 Flask
 prometheus-flask-exporter
+prometheus-client
 Werkzeug
 python-dotenv
+gunicorn

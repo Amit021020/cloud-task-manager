@@ -1,6 +1,9 @@
 FROM python:3.12-slim
 
-WORKDIR /app
+WORKDIR /
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 COPY requirements.txt .
 
@@ -10,4 +13,4 @@ COPY app/ .
 
 EXPOSE 5000
 
-CMD ["python","app.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
