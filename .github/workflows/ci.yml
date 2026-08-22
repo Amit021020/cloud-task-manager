@@ -45,3 +45,27 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+      - name: Deploy to EC2 using SSM
+        run: |
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids i-0194bbec0d55e88a6 \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=[
+              "aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 536300833114.dkr.ecr.ap-south-1.amazonaws.com",
+              "docker pull 536300833114.dkr.ecr.ap-south-1.amazonaws.com/cloud-task-manager:latest",
+              "docker rm -f cloud-task-manager || true",
+              "SECRET_KEY=$(aws secretsmanager get-secret-value --secret-id cloud-task-manager/secret-key --region ap-south-1 --query SecretString --output text | python3 -c '\''import sys,json; print(json.load(sys.stdin)[\"SECRET_KEY\"])'\'' )",
+              "docker run -d --name cloud-task-manager -p 5000:5000 -e SECRET_KEY=\"$SECRET_KEY\" --restart unless-stopped 536300833114.dkr.ecr.ap-south-1.amazonaws.com/cloud-task-manager:latest"
+            ]' \
+            --region ap-south-1 \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "SSM Command ID: $COMMAND_ID"
+
+          aws ssm wait command-executed \
+            --command-id "$COMMAND_ID" \
+            --instance-id i-0194bbec0d55e88a6 \
+            --region ap-south-1
+
+          echo "Deployment completed successfully."
